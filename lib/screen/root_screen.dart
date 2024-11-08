@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'calendar_screen.dart';
 import 'home_screen.dart';
-import 'runing_screen.dart';
+import 'running_screen.dart';
 
 class RootScreen extends StatefulWidget {
   const RootScreen({Key? key}) : super(key: key);
@@ -74,9 +74,7 @@ class _RootScreenState extends State<RootScreen> with SingleTickerProviderStateM
       HomeScreen(
 
       ),
-      RuningScreen(
-
-      ),
+      RunningScreen(),
       CalendarScreen(
 
       ),
