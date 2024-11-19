@@ -2,9 +2,13 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RunningScreen extends StatefulWidget {
-  const RunningScreen({Key? key}) : super(key: key);
+  final Function(bool) onRunningStateChange;
+
+  const RunningScreen({Key? key, required this.onRunningStateChange})
+      : super(key: key);
 
   @override
   State<RunningScreen> createState() => _RunningScreenState();
@@ -20,11 +24,9 @@ class _RunningScreenState extends State<RunningScreen> {
   double totalDistance = 0.0;
   late LatLng lastPosition;
 
-  // 속도 관련 변수
-  double currentSpeed = 0.0; // km/h 단위로 속도 표시
+  double currentSpeed = 0.0;
   DateTime? lastUpdateTime;
 
-  // 타이머 관련 변수
   Timer? timer;
   int elapsedSeconds = 0;
 
@@ -55,11 +57,9 @@ class _RunningScreenState extends State<RunningScreen> {
       return;
     }
 
-    // 권한이 허가된 경우, 위치 추적 시작
     startLocationTracking();
   }
 
-  // 거리 및 속도 계산 로직
   void startLocationTracking() {
     positionStream = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
@@ -77,21 +77,19 @@ class _RunningScreenState extends State<RunningScreen> {
           currentLatLng.longitude,
         );
 
-        // 속도 계산 로직 추가
         final DateTime currentTime = DateTime.now();
         if (lastUpdateTime != null) {
           final elapsed = currentTime.difference(lastUpdateTime!).inSeconds;
           if (elapsed > 0) {
-            // m/s 단위 속도를 km/h 단위로 변환
             double speed = (distance / elapsed) * 3.6;
             setState(() {
-              currentSpeed = speed; // 현재 속도 업데이트
+              currentSpeed = speed;
             });
           }
         }
 
         setState(() {
-          totalDistance += distance / 1000; // 총 이동 거리 누적 (킬로미터 단위)
+          totalDistance += distance / 1000;
         });
       }
 
@@ -121,43 +119,77 @@ class _RunningScreenState extends State<RunningScreen> {
     timer?.cancel();
   }
 
-  void resetTimer() {
-    timer?.cancel();
-    setState(() {
-      elapsedSeconds = 0;
-    });
-  }
-
-  String formatTime(int seconds) {
-    final int hours = seconds ~/ 3600;
-    final int minutes = (seconds % 3600) ~/ 60;
-    final int remainingSeconds = seconds % 60;
-
-    return '${hours.toString().padLeft(2, '0')}:'
-        '${minutes.toString().padLeft(2, '0')}:'
-        '${remainingSeconds.toString().padLeft(2, '0')}';
-  }
-
   void toggleRun() {
     setState(() {
       isRunning = !isRunning;
     });
+    widget.onRunningStateChange(isRunning);
     if (isRunning) {
-      startLocationTracking();
       startTimer();
+      startLocationTracking();
     } else {
-      positionStream.pause();
       stopTimer();
+      positionStream.pause();
     }
   }
 
-  void stopRun() {
-    positionStream.cancel();
-    stopTimer();
+  Future<void> stopRun() async {
+    stopTimer(); // 타이머 멈추기
+    positionStream.cancel(); // 위치 추적 멈추기
+
+    // 현재 기록을 Firebase에 저장
+    await saveRunToFirebase();
+
+    // 현재 기록을 보여줌
+    await showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('운동 종료'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('총 거리: ${totalDistance.toStringAsFixed(2)} km'),
+              Text('평균 속도: ${(totalDistance / (elapsedSeconds / 3600)).toStringAsFixed(2)} km/h'),
+              Text('총 운동 시간: ${Duration(seconds: elapsedSeconds).inMinutes}분 ${elapsedSeconds % 60}초'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // 다이얼로그 닫기
+              },
+              child: const Text('확인'),
+            ),
+          ],
+        );
+      },
+    );
+
+    // 기록 초기화
     setState(() {
-      isRunning = false;
-      currentSpeed = 0.0; // 종료 시 속도 초기화
+      isRunning = false; // 상태 업데이트
+      widget.onRunningStateChange(isRunning);
+      currentSpeed = 0.0; // 속도 초기화
+      elapsedSeconds = 0; // 시간 초기화
+      totalDistance = 0.0; // 거리 초기화
+      routePoints.clear(); // 경로 초기화
     });
+  }
+
+  Future<void> saveRunToFirebase() async {
+    final runRecord = {
+      'distance': totalDistance,
+      'time': elapsedSeconds,
+      'speed': currentSpeed,
+      'timestamp': Timestamp.now(),
+    };
+
+    // Firestore에 저장
+    await FirebaseFirestore.instance.collection('runs').add(runRecord);
+    print('운동 기록이 Firebase에 저장되었습니다.');
   }
 
   @override
@@ -195,38 +227,32 @@ class _RunningScreenState extends State<RunningScreen> {
             bottom: 50,
             left: 20,
             right: 20,
-            child: Column(
-              children: [
-                Card(
-                  elevation: 5,
-                  child: Padding(
-                    padding: const EdgeInsets.all(15),
-                    child: Column(
+            child: Card(
+              elevation: 5,
+              child: Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  children: [
+                    Text('이동 거리: ${totalDistance.toStringAsFixed(2)} km'),
+                    Text('현재 속도: ${currentSpeed.toStringAsFixed(2)} km/h'),
+                    Text('운동 시간: ${elapsedSeconds}s'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text('이동 거리: ${totalDistance.toStringAsFixed(2)} km'),
-                        Text('현재 속도: ${currentSpeed.toStringAsFixed(2)} km/h'),
-                        const SizedBox(height: 10),
-                        Text('운동 시간: ${formatTime(elapsedSeconds)}'),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            ElevatedButton(
-                              onPressed: toggleRun,
-                              child: Text(isRunning ? '일시정지' : '시작'),
-                            ),
-                            const SizedBox(width: 10),
-                            ElevatedButton(
-                              onPressed: stopRun,
-                              child: const Text('종료'),
-                            ),
-                          ],
+                        ElevatedButton(
+                          onPressed: toggleRun,
+                          child: Text(isRunning ? '일시정지' : '시작'),
+                        ),
+                        const SizedBox(width: 10),
+                        ElevatedButton(
+                          onPressed: stopRun,
+                          child: const Text('종료'),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
