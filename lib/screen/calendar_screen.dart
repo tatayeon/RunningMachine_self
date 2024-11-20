@@ -7,7 +7,7 @@ class CalendarScreen extends StatelessWidget{
   Widget build(BuildContext context) {
     return SafeArea(
       child: Center(
-        child: Text("러닝 .화면"),
+        child: Text("러닝 ..화면"),
       ),
     );
   }
