@@ -185,6 +185,7 @@ class _RunningScreenState extends State<RunningScreen> {
       'time': elapsedSeconds,
       'speed': currentSpeed,
       'timestamp': Timestamp.now(),
+      'date': DateTime.now().toIso8601String().split('T')[0], /////////////
     };
 
     // Firestore에 저장
