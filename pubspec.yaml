@@ -41,6 +41,8 @@ dependencies:
   firebase_core: ^3.8.0  # 최신 버전으로 변경
   cloud_firestore: ^5.5.0
   table_calendar: ^3.0.10
+  firebase_auth: ^5.3.3
+  google_sign_in: ^6.2.2
 
 
 
@@ -65,6 +67,8 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+  assets:
+    - assets/img/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

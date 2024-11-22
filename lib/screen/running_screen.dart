@@ -145,28 +145,66 @@ class _RunningScreenState extends State<RunningScreen> {
       context: context,
       barrierDismissible: true,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('운동 종료'),
-          content: Column(
+        return Dialog(
+          insetPadding: const EdgeInsets.all(20),
+          child: Column(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('총 거리: ${totalDistance.toStringAsFixed(2)} km'),
-              Text('평균 속도: ${(totalDistance / (elapsedSeconds / 3600)).toStringAsFixed(2)} km/h'),
-              Text('총 운동 시간: ${Duration(seconds: elapsedSeconds).inMinutes}분 ${elapsedSeconds % 60}초'),
+              SizedBox(
+                height: 300, // 지도 높이 설정
+                width: double.infinity,
+                child: GoogleMap(
+                  initialCameraPosition: CameraPosition(
+                    target: routePoints.isNotEmpty ? routePoints.first : initialLatLng,
+                    zoom: 16,
+                  ),
+                  polylines: {
+                    Polyline(
+                      polylineId: const PolylineId('route'),
+                      points: routePoints,
+                      color: Colors.blue,
+                      width: 5,
+                    ),
+                  },
+                  markers: {
+                    if (routePoints.isNotEmpty)
+                      Marker(
+                        markerId: const MarkerId('start'),
+                        position: routePoints.first,
+                        infoWindow: const InfoWindow(title: '출발 지점'),
+                      ),
+                    if (routePoints.length > 1)
+                      Marker(
+                        markerId: const MarkerId('end'),
+                        position: routePoints.last,
+                        infoWindow: const InfoWindow(title: '종료 지점'),
+                      ),
+                  },
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(15),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('총 거리: ${totalDistance.toStringAsFixed(2)} km'),
+                    Text('평균 속도: ${(totalDistance / (elapsedSeconds / 3600)).toStringAsFixed(2)} km/h'),
+                    Text('총 운동 시간: ${Duration(seconds: elapsedSeconds).inMinutes}분 ${elapsedSeconds % 60}초'),
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // 다이얼로그 닫기
+                },
+                child: const Text('확인'),
+              ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // 다이얼로그 닫기
-              },
-              child: const Text('확인'),
-            ),
-          ],
         );
       },
     );
+
 
     // 기록 초기화
     setState(() {
@@ -180,18 +218,24 @@ class _RunningScreenState extends State<RunningScreen> {
   }
 
   Future<void> saveRunToFirebase() async {
+    // 경로 데이터를 저장 가능한 형태로 변환
+    final List<Map<String, double>> routeData = routePoints
+        .map((point) => {'latitude': point.latitude, 'longitude': point.longitude})
+        .toList();
+
     final runRecord = {
-      'distance': totalDistance,
+      'distance': totalDistance.toStringAsFixed(2),
       'time': elapsedSeconds,
       'speed': currentSpeed,
       'timestamp': Timestamp.now(),
-      'date': DateTime.now().toIso8601String().split('T')[0], /////////////
+      'route': routeData, // 경로 데이터 추가
     };
 
     // Firestore에 저장
     await FirebaseFirestore.instance.collection('runs').add(runRecord);
-    print('운동 기록이 Firebase에 저장되었습니다.');
+    print('운동 기록 및 경로가 Firebase에 저장되었습니다.');
   }
+
 
   @override
   void dispose() {
