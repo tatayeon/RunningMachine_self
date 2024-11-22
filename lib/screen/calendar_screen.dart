@@ -140,7 +140,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 return ListTile(
                   leading: Icon(Icons.directions_run, color: Colors.blue),
                   title: Text('거리: ${run['distance']} km'),
-                  subtitle: Text('시간: ${run['time']} 초'),
+                  subtitle: Text('시간: ${run['time']} 초dd'),
                   onTap: () => _showRunDetails(context, run),
                 );
               },
