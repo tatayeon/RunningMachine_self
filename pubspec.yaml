@@ -43,7 +43,6 @@ dependencies:
   table_calendar: ^3.0.10
   firebase_auth: ^5.3.3
   google_sign_in: ^6.2.2
-  kakao_flutter_sdk_user: ^1.9.6
 
 
 

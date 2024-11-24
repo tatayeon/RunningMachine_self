@@ -1,7 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:google_sign_in/google_sign_in.dart';
-import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart';
 import 'package:smop_final/screen/calendar_screen.dart';
 import 'package:smop_final/screen/running_screen.dart';
 
@@ -59,36 +57,11 @@ class _RootScreenState extends State<RootScreen> with SingleTickerProviderStateM
         actions: [
           TextButton(
             child: Text(
-              "로그아웃",
+              "Google logOut",
               style: TextStyle(color: Colors.black),
             ),
-            onPressed: () async {
-              try {
-                // Firebase 로그아웃
-                await FirebaseAuth.instance.signOut();
-
-                // 구글 로그아웃
-                await GoogleSignIn().signOut();
-
-                // 카카오톡 로그아웃
-                await UserApi.instance.logout();
-
-                // 로그아웃 성공 메시지
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text("로그아웃 성공")),
-                );
-              } catch (e) {
-                print("로그아웃 중 오류 발생: $e");
-
-                // 오류 메시지 표시
-                if (context.mounted) { // context가 유효한지 체크
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text("로그아웃 실패: ${e.toString()}")),
-                  );
-                }
-              }
-            },
-          )
+            onPressed: FirebaseAuth.instance.signOut,
+          ),
         ],
 
       ),
