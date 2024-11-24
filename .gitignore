@@ -44,3 +44,17 @@ app.*.map.json
 /android/app/release
 
 AndroidManifest.xml
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
