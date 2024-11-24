@@ -120,7 +120,7 @@ class LoginWidget extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'Runner Away',
+                  'RunnerAway',
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.bold,
