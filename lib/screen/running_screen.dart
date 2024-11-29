@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class RunningScreen extends StatefulWidget {
@@ -15,7 +16,7 @@ class RunningScreen extends StatefulWidget {
 }
 
 class _RunningScreenState extends State<RunningScreen> {
-  static const LatLng initialLatLng = LatLng(36.834469, 127.149245);
+  static const LatLng initialLatLng = LatLng(36.8352, 127.1695);
   GoogleMapController? mapController;
   List<LatLng> routePoints = [];
   late StreamSubscription<Position> positionStream;
@@ -29,6 +30,12 @@ class _RunningScreenState extends State<RunningScreen> {
 
   Timer? timer;
   int elapsedSeconds = 0;
+
+  double targetSpeed = 10.0; // 기본 목표 속도
+  bool isAudioEnabled = true;
+  bool isSlowAudioPlayed = false;
+  bool isFastAudioPlayed = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   @override
   void initState() {
@@ -104,7 +111,33 @@ class _RunningScreenState extends State<RunningScreen> {
           CameraUpdate.newLatLng(currentLatLng),
         );
       }
+
+      _checkSpeedAndPlayAudio();  // 속도 체크 및 오디오 재생
     });
+  }
+
+  void _checkSpeedAndPlayAudio() {
+    if (!isAudioEnabled) return;
+
+    if (currentSpeed < targetSpeed) {
+      if (!isSlowAudioPlayed) {
+        _playAudio('audio/speed_up.mp3'); // 더 빨리 달리세요 오디오
+        isSlowAudioPlayed = true;
+        isFastAudioPlayed = false;
+      }
+    } else {
+      if (!isFastAudioPlayed) {
+        _playAudio('audio/keep_up.mp3'); // 이대로 달리세요 오디오
+        isFastAudioPlayed = true;
+        isSlowAudioPlayed = false;
+      }
+    }
+  }
+
+  Future<void> _playAudio(String audioPath) async {
+    if (isAudioEnabled) {
+      await _audioPlayer.play(AssetSource(audioPath));
+    }
   }
 
   void startTimer() {
@@ -205,7 +238,6 @@ class _RunningScreenState extends State<RunningScreen> {
       },
     );
 
-
     // 기록 초기화
     setState(() {
       isRunning = false; // 상태 업데이트
@@ -236,9 +268,9 @@ class _RunningScreenState extends State<RunningScreen> {
     print('운동 기록 및 경로가 Firebase에 저장되었습니다.');
   }
 
-
   @override
   void dispose() {
+    _audioPlayer.dispose();
     positionStream.cancel();
     stopTimer();
     super.dispose();
@@ -292,6 +324,33 @@ class _RunningScreenState extends State<RunningScreen> {
                         ElevatedButton(
                           onPressed: stopRun,
                           child: const Text('종료'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('속도: ${targetSpeed.toStringAsFixed(1)}'),
+                        Slider(
+                          value: targetSpeed,
+                          min: 5.0,
+                          max: 20.0,
+                          divisions: 15,
+                          label: targetSpeed.toStringAsFixed(1),
+                          onChanged: (double newValue) {
+                            setState(() {
+                              targetSpeed = newValue;
+                            });
+                          },
+                        ),
+                        IconButton(
+                          icon: Icon(isAudioEnabled ? Icons.volume_up : Icons.volume_off),
+                          onPressed: () {
+                            setState(() {
+                              isAudioEnabled = !isAudioEnabled;
+                            });
+                          },
                         ),
                       ],
                     ),

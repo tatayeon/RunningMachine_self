@@ -44,6 +44,7 @@ dependencies:
   firebase_auth: ^5.3.3
   google_sign_in: ^6.2.2
   kakao_flutter_sdk_user: ^1.9.6
+  audioplayers: ^6.1.0
 
 
 
@@ -70,6 +71,8 @@ flutter:
   uses-material-design: true
   assets:
     - assets/img/
+    - assets/audio/speed_up.mp3
+    - assets/audio/keep_up.mp3
 
   # To add assets to your application, add an assets section, like this:
   # assets:
